@@ -1,11 +1,6 @@
 pipeline {
     agent any
     
-    environment {
-        // Your EC2 public IP (update this)
-        EC2_IP = 'YOUR_EC2_PUBLIC_IP'
-    }
-    
     stages {
         stage('Checkout') {
             steps {
@@ -29,8 +24,9 @@ pipeline {
                 sh '''
                     docker stop codevault-app || true
                     docker rm codevault-app || true
-                    docker run -d --name codevault-app -p 5001:5000 codevault:latest
+                    docker run -d --name codevault-app -p 8081:5000 codevault:latest
                     sleep 5
+                    docker ps | grep codevault
                 '''
             }
         }
@@ -43,9 +39,11 @@ pipeline {
                     rm -rf codevault-tests
                     git clone https://github.com/janjua911/codevault-tests.git
                     
-                    # Update test file to use port 5001
                     cd codevault-tests
-                    sed -i 's/localhost:5000/localhost:5002/g' test_codevault.py
+                    
+                    # Update test file to use port 8081
+                    sed -i 's/localhost:5000/localhost:8081/g' test_codevault.py
+                    sed -i 's/127.0.0.1:5000/127.0.0.1:8081/g' test_codevault.py
                     
                     # Run tests
                     docker run --rm \
