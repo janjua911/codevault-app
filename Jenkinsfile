@@ -29,7 +29,7 @@ pipeline {
                 sh '''
                     docker stop codevault-app || true
                     docker rm codevault-app || true
-                    docker run -d --name codevault-app -p 5000:5000 codevault:latest
+                    docker run -d --name codevault-app -p 5001:5000 codevault:latest
                     sleep 5
                 '''
             }
@@ -40,12 +40,17 @@ pipeline {
                 echo 'Running Selenium tests...'
                 sh '''
                     # Clone tests repository
+                    rm -rf codevault-tests
                     git clone https://github.com/janjua911/codevault-tests.git
                     
-                    # Run tests using Docker
+                    # Update test file to use port 5001
+                    cd codevault-tests
+                    sed -i 's/localhost:5000/localhost:5001/g' test_codevault.py
+                    
+                    # Run tests
                     docker run --rm \
                         --network host \
-                        -v $PWD/codevault-tests:/tests \
+                        -v $PWD:/tests \
                         -w /tests \
                         python:3.9-slim \
                         bash -c "pip install selenium pytest webdriver-manager && pytest test_codevault.py -v --tb=short"
