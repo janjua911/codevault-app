@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Register — CodeVault{% endblock %}
+{% block content %}
+
+<div class="auth-container">
+  <div class="auth-logo">
+    <h1>CODE<span style="color:var(--accent2)">VAULT</span></h1>
+    <p>CREATE NEW OPERATIVE ACCOUNT</p>
+  </div>
+
+  <div class="card">
+    <form method="POST" action="{{ url_for('register') }}" id="register-form">
+      <div class="form-group">
+        <label for="username">USERNAME</label>
+        <input type="text" id="username" name="username" placeholder="choose a username" required autocomplete="username"/>
+      </div>
+      <div class="form-group">
+        <label for="email">EMAIL ADDRESS</label>
+        <input type="email" id="email" name="email" placeholder="your@email.com" required autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label for="password">PASSWORD</label>
+        <input type="password" id="password" name="password" placeholder="min 6 characters" required autocomplete="new-password"/>
+      </div>
+      <div class="form-group">
+        <label for="confirm">CONFIRM PASSWORD</label>
+        <input type="password" id="confirm" name="confirm" placeholder="repeat password" required autocomplete="new-password"/>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%" id="register-btn">CREATE ACCOUNT</button>
+    </form>
+
+    <hr class="divider">
+    <p style="text-align:center; font-size:0.85rem; color:var(--muted)">
+      Already have an account?
+      <a href="{{ url_for('login') }}" style="color:var(--accent); text-decoration:none" id="login-link">LOGIN HERE</a>
+    </p>
+  </div>
+</div>
+
+{% endblock %}

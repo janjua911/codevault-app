@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Login — CodeVault{% endblock %}
+{% block content %}
+
+<div class="auth-container">
+  <div class="auth-logo">
+    <h1>CODE<span style="color:var(--accent2)">VAULT</span></h1>
+    <p>ACCESS TERMINAL — AUTHENTICATE TO PROCEED</p>
+  </div>
+
+  <div class="card">
+    <form method="POST" action="{{ url_for('login') }}" id="login-form">
+      <div class="form-group">
+        <label for="username">USERNAME</label>
+        <input type="text" id="username" name="username" placeholder="enter username" required autocomplete="username"/>
+      </div>
+      <div class="form-group">
+        <label for="password">PASSWORD</label>
+        <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password"/>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%" id="login-btn">AUTHENTICATE</button>
+    </form>
+
+    <hr class="divider">
+    <p style="text-align:center; font-size:0.85rem; color:var(--muted)">
+      No account?
+      <a href="{{ url_for('register') }}" style="color:var(--accent); text-decoration:none" id="register-link">REGISTER HERE</a>
+    </p>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Edit Snippet — CodeVault{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1>EDIT SNIPPET</h1>
+  <p>Modify snippet: {{ snippet.title }}</p>
+</div>
+
+<div class="card" style="max-width:760px">
+  <form method="POST" action="{{ url_for('edit_snippet', sid=snippet.id) }}" id="edit-snippet-form">
+    <div class="form-group">
+      <label for="title">SNIPPET TITLE</label>
+      <input type="text" id="title" name="title" value="{{ snippet.title }}" required/>
+    </div>
+    <div class="form-group">
+      <label for="language">PROGRAMMING LANGUAGE</label>
+      <select id="language" name="language" required>
+        {% for lang in ['Python','JavaScript','Java','C++','C','TypeScript','Go','Rust','Bash','SQL','HTML','CSS','Other'] %}
+          <option value="{{ lang }}" {% if snippet.language == lang %}selected{% endif %}>{{ lang }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="description">DESCRIPTION</label>
+      <input type="text" id="description" name="description" value="{{ snippet.description or '' }}"/>
+    </div>
+    <div class="form-group">
+      <label for="code">CODE</label>
+      <textarea id="code" name="code" required rows="12">{{ snippet.code }}</textarea>
+    </div>
+    <div style="display:flex; gap:1rem">
+      <button type="submit" class="btn btn-primary" id="update-btn">UPDATE SNIPPET</button>
+      <a href="{{ url_for('view_snippet', sid=snippet.id) }}" class="btn btn-secondary" id="cancel-edit-btn">CANCEL</a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

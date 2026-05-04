@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}CodeVault{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #050810;
+      --bg2:      #0a0f1e;
+      --bg3:      #0f1628;
+      --accent:   #00f5c4;
+      --accent2:  #0ea5e9;
+      --accent3:  #f0e040;
+      --danger:   #ff3366;
+      --text:     #c8d8e8;
+      --muted:    #4a5a72;
+      --border:   #1a2a3a;
+      --card:     #0c1220;
+      --glow:     0 0 20px rgba(0,245,196,0.3);
+      --glow2:    0 0 20px rgba(14,165,233,0.3);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Scanline overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.03) 2px,
+        rgba(0,0,0,0.03) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* Grid bg */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,245,196,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,245,196,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(5,8,16,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px;
+    }
+
+    .nav-brand {
+      font-family: 'Orbitron', monospace;
+      font-weight: 900;
+      font-size: 1.3rem;
+      color: var(--accent);
+      text-decoration: none;
+      letter-spacing: 0.1em;
+      text-shadow: var(--glow);
+    }
+
+    .nav-brand span { color: var(--accent2); }
+
+    .nav-links { display: flex; gap: 0.5rem; align-items: center; }
+
+    .nav-links a {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 0.35rem 0.9rem;
+      border: 1px solid transparent;
+      border-radius: 3px;
+      letter-spacing: 0.08em;
+      transition: all 0.2s;
+    }
+    .nav-links a:hover,
+    .nav-links a.active {
+      color: var(--accent);
+      border-color: var(--accent);
+      text-shadow: var(--glow);
+    }
+
+    .btn-nav {
+      background: var(--accent) !important;
+      color: var(--bg) !important;
+      font-weight: 700;
+    }
+    .btn-nav:hover { box-shadow: var(--glow); }
+
+    /* ── MAIN ── */
+    main {
+      position: relative; z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      margin-bottom: 2.5rem;
+      border-left: 3px solid var(--accent);
+      padding-left: 1.2rem;
+    }
+    .page-header h1 {
+      font-family: 'Orbitron', monospace;
+      font-size: 1.8rem;
+      color: var(--accent);
+      text-shadow: var(--glow);
+      letter-spacing: 0.05em;
+    }
+    .page-header p { color: var(--muted); font-size: 0.9rem; margin-top: 0.3rem; }
+
+    /* ── FLASH MESSAGES ── */
+    .flash-container { margin-bottom: 1.5rem; }
+    .flash {
+      padding: 0.7rem 1.2rem;
+      border-radius: 4px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.82rem;
+      margin-bottom: 0.5rem;
+      border-left: 3px solid;
+    }
+    .flash.success { background: rgba(0,245,196,0.07); border-color: var(--accent); color: var(--accent); }
+    .flash.error   { background: rgba(255,51,102,0.07); border-color: var(--danger); color: var(--danger); }
+    .flash.warning { background: rgba(240,224,64,0.07); border-color: var(--accent3); color: var(--accent3); }
+    .flash.info    { background: rgba(14,165,233,0.07); border-color: var(--accent2); color: var(--accent2); }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1.5rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .card:hover { border-color: var(--accent); box-shadow: var(--glow); }
+
+    /* ── SNIPPET GRID ── */
+    .snippet-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 1.2rem;
+    }
+
+    .snippet-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1.2rem 1.4rem;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: block;
+      position: relative;
+      overflow: hidden;
+    }
+    .snippet-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0;
+      width: 3px; height: 100%;
+      background: var(--accent);
+      transform: scaleY(0);
+      transition: transform 0.2s;
+      transform-origin: bottom;
+    }
+    .snippet-card:hover::before { transform: scaleY(1); }
+    .snippet-card:hover { border-color: var(--accent); box-shadow: var(--glow); transform: translateY(-2px); }
+
+    .snippet-card .s-lang {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--bg);
+      background: var(--accent);
+      padding: 0.15rem 0.5rem;
+      border-radius: 2px;
+      letter-spacing: 0.1em;
+      display: inline-block;
+      margin-bottom: 0.6rem;
+    }
+    .snippet-card .s-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.95rem;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+    .snippet-card .s-desc {
+      font-size: 0.82rem;
+      color: var(--muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .snippet-card .s-meta {
+      margin-top: 0.8rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
+    /* ── CODE PREVIEW ── */
+    pre, code {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.82rem;
+    }
+    pre {
+      background: #020408;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1rem 1.2rem;
+      overflow-x: auto;
+      color: var(--accent);
+      line-height: 1.7;
+    }
+
+    /* ── FORMS ── */
+    .form-group { margin-bottom: 1.3rem; }
+    .form-group label {
+      display: block;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+      margin-bottom: 0.5rem;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      background: #020408;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1rem;
+      padding: 0.6rem 0.9rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-group textarea {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.82rem;
+      resize: vertical;
+      min-height: 160px;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(0,245,196,0.1);
+    }
+    .form-group select option { background: var(--bg2); }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-block;
+      padding: 0.55rem 1.4rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.82rem;
+      letter-spacing: 0.1em;
+      border-radius: 4px;
+      border: 1px solid;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+      font-weight: 700;
+    }
+    .btn-primary:hover { box-shadow: var(--glow); transform: translateY(-1px); }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--accent2);
+      border-color: var(--accent2);
+    }
+    .btn-secondary:hover { background: rgba(14,165,233,0.1); box-shadow: var(--glow2); }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+    .btn-danger:hover { background: rgba(255,51,102,0.1); }
+
+    .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.72rem; }
+
+    /* ── SEARCH BAR ── */
+    .search-bar {
+      display: flex; gap: 0.8rem;
+      margin-bottom: 2rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .search-bar input, .search-bar select {
+      background: #020408;
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.82rem;
+      padding: 0.5rem 0.9rem;
+      border-radius: 4px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-bar input { flex: 1; min-width: 200px; }
+    .search-bar input:focus, .search-bar select:focus { border-color: var(--accent); }
+
+    /* ── AUTH PAGES ── */
+    .auth-container {
+      max-width: 420px;
+      margin: 4rem auto;
+    }
+    .auth-logo {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .auth-logo h1 {
+      font-family: 'Orbitron', monospace;
+      font-size: 2rem;
+      color: var(--accent);
+      text-shadow: var(--glow);
+    }
+    .auth-logo p { color: var(--muted); font-size: 0.85rem; margin-top: 0.5rem; }
+
+    /* ── STATS ── */
+    .stats-row {
+      display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;
+    }
+    .stat-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1.2rem 1.8rem;
+      text-align: center;
+      flex: 1; min-width: 120px;
+    }
+    .stat-box .stat-num {
+      font-family: 'Orbitron', monospace;
+      font-size: 2rem;
+      color: var(--accent);
+    }
+    .stat-box .stat-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--muted);
+    }
+    .empty-state .e-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .empty-state h3 {
+      font-family: 'Orbitron', monospace;
+      color: var(--muted);
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      position: relative; z-index: 1;
+      text-align: center;
+      padding: 1.5rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      margin-top: 4rem;
+    }
+
+    /* ── TABLE ── */
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      text-align: left;
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 0.7rem 1rem;
+      border-bottom: 1px solid rgba(26,42,58,0.5);
+      font-size: 0.9rem;
+      vertical-align: middle;
+    }
+    tr:hover td { background: rgba(0,245,196,0.03); }
+
+    .tag {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.68rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 2px;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1.5rem 0;
+    }
+
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+    .blink { animation: pulse 1.5s infinite; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="{{ url_for('index') }}" class="nav-brand">CODE<span>VAULT</span></a>
+    <div class="nav-links">
+      <a href="{{ url_for('index') }}">[ HOME ]</a>
+      {% if session.user_id %}
+        <a href="{{ url_for('dashboard') }}">[ DASHBOARD ]</a>
+        <a href="{{ url_for('add_snippet') }}" class="btn-nav">+ NEW</a>
+        <a href="{{ url_for('logout') }}">[ LOGOUT ]</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">[ LOGIN ]</a>
+        <a href="{{ url_for('register') }}" class="btn-nav">REGISTER</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">▶ {{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    CODEVAULT © 2026 — STORE. SEARCH. SHIP.
+    {% if session.username %}&nbsp;|&nbsp;LOGGED IN AS <span style="color:var(--accent)">{{ session.username }}</span>{% endif %}
+  </footer>
+</body>
+</html>

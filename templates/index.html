@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}CodeVault — Developer Snippet Manager{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1>SNIPPET VAULT</h1>
+  <p>{{ snippets|length }} snippet{% if snippets|length != 1 %}s{% endif %} found in the vault</p>
+</div>
+
+<!-- Search Bar -->
+<form method="GET" action="{{ url_for('index') }}" class="search-bar" id="search-form">
+  <input type="text" name="q" id="search-input" placeholder="SEARCH SNIPPETS..." value="{{ query }}" autocomplete="off"/>
+  <select name="lang" id="lang-filter">
+    <option value="">ALL LANGUAGES</option>
+    {% for l in languages %}
+      <option value="{{ l.language }}" {% if lang == l.language %}selected{% endif %}>{{ l.language|upper }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn btn-primary" id="search-btn">SEARCH</button>
+  {% if query or lang %}
+    <a href="{{ url_for('index') }}" class="btn btn-secondary" id="clear-btn">CLEAR</a>
+  {% endif %}
+</form>
+
+{% if snippets %}
+  <div class="snippet-grid" id="snippet-grid">
+    {% for s in snippets %}
+      <a href="{{ url_for('view_snippet', sid=s.id) }}" class="snippet-card" data-id="{{ s.id }}">
+        <span class="s-lang">{{ s.language|upper }}</span>
+        <div class="s-title">{{ s.title }}</div>
+        <div class="s-desc">{{ s.description or 'No description provided.' }}</div>
+        <div class="s-meta">by {{ s.username }} &nbsp;·&nbsp; {{ s.created_at[:10] }}</div>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-state" id="empty-state">
+    <div class="e-icon">⬡</div>
+    <h3>VAULT IS EMPTY</h3>
+    <p>No snippets match your search. Try different keywords.</p>
+    {% if session.user_id %}
+      <br>
+      <a href="{{ url_for('add_snippet') }}" class="btn btn-primary">+ ADD FIRST SNIPPET</a>
+    {% endif %}
+  </div>
+{% endif %}
+
+{% endblock %}
