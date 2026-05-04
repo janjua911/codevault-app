@@ -45,7 +45,7 @@ pipeline {
                     
                     # Update test file to use port 5001
                     cd codevault-tests
-                    sed -i 's/localhost:5000/localhost:5001/g' test_codevault.py
+                    sed -i 's/localhost:5000/localhost:5002/g' test_codevault.py
                     
                     # Run tests
                     docker run --rm \
