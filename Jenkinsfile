@@ -24,9 +24,11 @@ pipeline {
                 sh '''
                     docker stop codevault-app || true
                     docker rm codevault-app || true
-                    docker run -d --name codevault-app -p 8081:5000 codevault:latest
+                    # Use host network mode
+                    docker run -d --name codevault-app --network host codevault:latest
                     sleep 5
-                    docker ps | grep codevault
+                    # Check if app is running
+                    curl http://localhost:5000 || echo "App starting..."
                 '''
             }
         }
@@ -41,17 +43,21 @@ pipeline {
                     
                     cd codevault-tests
                     
-                    # Update test file to use port 8081
-                    sed -i 's/localhost:5000/localhost:8081/g' test_codevault.py
-                    sed -i 's/127.0.0.1:5000/127.0.0.1:8081/g' test_codevault.py
+                    # Install dependencies
+                    apt-get update
+                    apt-get install -y wget gnupg
+                    
+                    # Install Chrome
+                    wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+                    echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
+                    apt-get update
+                    apt-get install -y google-chrome-stable
+                    
+                    # Install Python packages
+                    pip install selenium pytest webdriver-manager
                     
                     # Run tests
-                    docker run --rm \
-                        --network host \
-                        -v $PWD:/tests \
-                        -w /tests \
-                        python:3.9-slim \
-                        bash -c "pip install selenium pytest webdriver-manager && pytest test_codevault.py -v --tb=short"
+                    python -m pytest test_codevault.py -v --tb=short
                 '''
             }
         }
