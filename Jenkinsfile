@@ -1,15 +1,10 @@
 pipeline {
     agent any
     
-    // Clean workspace before each build
-    options {
-        cleanWs()
-        timeout(time: 30, unit: 'MINUTES')
-    }
-    
-    environment {
-        DOCKER_NETWORK = "host"
-    }
+    // Remove or comment this line:
+    // options {
+    //     cleanWs()
+    // }
     
     stages {
         stage('Checkout') {
@@ -36,7 +31,7 @@ pipeline {
                     docker rm codevault-app 2>/dev/null || true
                     docker run -d --name codevault-app --network host codevault:latest
                     sleep 5
-                    curl -s http://localhost:5000 > /dev/null && echo "✅ App is running on port 5000"
+                    curl -s http://localhost:5000 > /dev/null && echo "✅ App is running"
                 '''
             }
         }
@@ -45,6 +40,9 @@ pipeline {
             steps {
                 echo '🧪 Running Selenium tests...'
                 sh '''
+                    # Remove old directory if exists
+                    rm -rf selenium-tests 2>/dev/null || true
+                    
                     # Clone tests to a new directory
                     git clone https://github.com/janjua911/codevault-tests.git selenium-tests
                     cd selenium-tests
@@ -89,10 +87,11 @@ DOCKERFILE
                 docker stop codevault-app 2>/dev/null || true
                 docker rm codevault-app 2>/dev/null || true
                 docker rmi codevault-tests:latest 2>/dev/null || true
+                rm -rf selenium-tests 2>/dev/null || true
             '''
         }
         success {
-            echo '🎉🎉🎉 PIPELINE SUCCESS! All 19 tests passed! 🎉🎉🎉'
+            echo '🎉 PIPELINE SUCCESS! All 19 tests passed! 🎉'
         }
         failure {
             echo '❌ Pipeline failed! Check the test output above. ❌'
