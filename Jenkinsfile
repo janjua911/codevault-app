@@ -2,11 +2,11 @@ pipeline {
     agent any
     
     environment {
-        // Use host's network for testing
         DOCKER_NETWORK = "host"
     }
     
     stages {
+
         stage('Checkout') {
             steps {
                 echo '📦 Checking out code from GitHub...'
@@ -17,9 +17,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo '🐳 Building Docker image...'
-                sh '''
-                    docker build -t codevault:latest .
-                '''
+                sh 'docker build -t codevault:latest .'
             }
         }
         
@@ -40,43 +38,43 @@ pipeline {
             steps {
                 echo '🧪 Running Selenium tests...'
                 sh '''
-                    # Clean up
+                    # 🔥 FIX 1: permission issue
+                    chmod -R 777 codevault-tests || true
                     rm -rf codevault-tests || true
                     
-                    # Clone tests repository
+                    # Clone fresh
                     git clone https://github.com/janjua911/codevault-tests.git
-                    
                     cd codevault-tests
                     
-                    # Create Dockerfile for tests with Chrome
+                    # 🔥 FIX 2: Modern Chrome install (NO apt-key)
                     cat > Dockerfile.test << 'DOCKERFILE'
 FROM python:3.9-slim
 
-# Install Chrome
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
-    unzip \
     curl \
-    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
+    unzip \
+    && mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /etc/apt/keyrings/google.gpg \
+    && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google.gpg] http://dl.google.com/linux/chrome/deb/ stable main" \
+    > /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update \
     && apt-get install -y google-chrome-stable \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python packages
 RUN pip install selenium pytest webdriver-manager
 
 WORKDIR /tests
 COPY . .
 
-CMD ["python", "-m", "pytest", "test_codevault.py", "-v", "--tb=short"]
+CMD ["pytest", "test_codevault.py", "-v", "--tb=short"]
 DOCKERFILE
                     
                     # Build test image
                     docker build -f Dockerfile.test -t codevault-tests:latest .
                     
-                    # Run tests
+                    # 🔥 FIX 3: run as Jenkins user (avoid permission issues)
                     docker run --rm -u $(id -u):$(id -g) \
                         --network host \
                         codevault-tests:latest
@@ -92,14 +90,18 @@ DOCKERFILE
                 docker stop codevault-app || true
                 docker rm codevault-app || true
                 docker rmi codevault-tests:latest || true
+
+                chmod -R 777 codevault-tests || true
                 rm -rf codevault-tests || true
             '''
         }
+
         success {
-            echo '🎉🎉🎉 PIPELINE SUCCESS! All 19 tests passed! 🎉🎉🎉'
+            echo '🎉🎉🎉 PIPELINE SUCCESS! All tests passed! 🎉🎉🎉'
         }
+
         failure {
-            echo '❌ Pipeline failed! Check the test output above. ❌'
+            echo '❌ Pipeline failed! Check logs above ❌'
         }
     }
 }
