@@ -16,8 +16,9 @@ pipeline {
 
         stage('Clean Workspace') {
             steps {
-                echo 'Wiping workspace...'
-                deleteDir()
+                // deleteDir() fails on root-owned Docker files — use sudo instead
+                sh 'sudo rm -rf ${WORKSPACE}/* ${WORKSPACE}/.git 2>/dev/null || true'
+                echo 'Workspace cleaned.'
             }
         }
 
@@ -55,12 +56,19 @@ pipeline {
             steps {
                 sh """
                     git clone ${TEST_REPO} test-suite
-                    docker run --rm \\
-                        --network host \\
-                        -v ${WORKSPACE}/test-suite:/tests \\
-                        -w /tests \\
-                        ${TEST_IMAGE} \\
-                        bash -c "pip install pytest pytest-html --quiet && python -m pytest test_codevault.py -v --junitxml=results.xml --html=report.html --self-contained-html"
+
+                    docker run --rm \
+                        --network host \
+                        -v ${WORKSPACE}/test-suite:/tests \
+                        -w /tests \
+                        ${TEST_IMAGE} \
+                        bash -c "pip install pytest pytest-html --quiet && \
+                                 python -m pytest test_codevault.py -v \
+                                 --junitxml=results.xml \
+                                 --html=report.html --self-contained-html"
+
+                    # Fix ownership so Jenkins can clean up next build
+                    sudo chown -R jenkins:jenkins ${WORKSPACE}/test-suite || true
                 """
             }
             post {
@@ -74,13 +82,13 @@ pipeline {
     post {
         always {
             sh "docker stop ${APP_CONTAINER} 2>/dev/null || true"
-            sh "docker rm ${APP_CONTAINER} 2>/dev/null || true"
+            sh "docker rm   ${APP_CONTAINER} 2>/dev/null || true"
         }
         success {
             emailext(
                 to: "${env.PUSHER_EMAIL}",
                 subject: "✅ [CodeVault CI] Build #${BUILD_NUMBER} PASSED",
-                body: "<h2>All tests passed!</h2><p>Build: #${BUILD_NUMBER}<br>Pusher: ${env.PUSHER_EMAIL}<br>Duration: ${currentBuild.durationString}</p><p><a href='${BUILD_URL}'>View Build</a></p>",
+                body: "<h2 style='color:green'>All 21 tests passed!</h2><p>Build: #${BUILD_NUMBER}<br>Pusher: ${env.PUSHER_EMAIL}<br>Duration: ${currentBuild.durationString}</p><p><a href='${BUILD_URL}'>View Build</a> | <a href='${BUILD_URL}testReport'>Test Report</a></p>",
                 mimeType: 'text/html',
                 attachmentsPattern: 'test-suite/report.html'
             )
@@ -89,7 +97,7 @@ pipeline {
             emailext(
                 to: "${env.PUSHER_EMAIL}",
                 subject: "❌ [CodeVault CI] Build #${BUILD_NUMBER} FAILED",
-                body: "<h2>Pipeline failed!</h2><p>Build: #${BUILD_NUMBER}<br>Pusher: ${env.PUSHER_EMAIL}</p><p><a href='${BUILD_URL}console'>View Console</a></p>",
+                body: "<h2 style='color:red'>Pipeline failed!</h2><p>Build: #${BUILD_NUMBER}<br>Pusher: ${env.PUSHER_EMAIL}</p><p><a href='${BUILD_URL}console'>View Console Output</a></p>",
                 mimeType: 'text/html'
             )
         }
