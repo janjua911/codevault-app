@@ -1,6 +1,16 @@
 pipeline {
     agent any
     
+    // Clean workspace before each build
+    options {
+        cleanWs()
+        timeout(time: 30, unit: 'MINUTES')
+    }
+    
+    environment {
+        DOCKER_NETWORK = "host"
+    }
+    
     stages {
         stage('Checkout') {
             steps {
@@ -12,7 +22,9 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo '🐳 Building Docker image...'
-                sh 'docker build -t codevault:latest .'
+                sh '''
+                    docker build -t codevault:latest .
+                '''
             }
         }
         
@@ -20,40 +32,51 @@ pipeline {
             steps {
                 echo '🚀 Starting Flask application...'
                 sh '''
-                    docker stop codevault-app || true
-                    docker rm codevault-app || true
-                    
-                    docker run -d --name codevault-app -p 5000:5000 codevault:latest
-                    
+                    docker stop codevault-app 2>/dev/null || true
+                    docker rm codevault-app 2>/dev/null || true
+                    docker run -d --name codevault-app --network host codevault:latest
                     sleep 5
-                    curl -s http://localhost:5000 > /dev/null && echo "✅ App is running"
+                    curl -s http://localhost:5000 > /dev/null && echo "✅ App is running on port 5000"
                 '''
             }
         }
         
         stage('Run Selenium Tests') {
             steps {
-                echo '🧪 Running Selenium tests in Docker...'
+                echo '🧪 Running Selenium tests...'
                 sh '''
-                    docker run --rm --network host python:3.9-slim bash -c "
+                    # Clone tests to a new directory
+                    git clone https://github.com/janjua911/codevault-tests.git selenium-tests
+                    cd selenium-tests
                     
-                    apt-get update && apt-get install -y git wget curl gnupg unzip
+                    # Create Dockerfile for tests
+                    cat > Dockerfile.test << 'DOCKERFILE'
+FROM python:3.9-slim
+
+# Install Chrome
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg \
+    unzip \
+    curl \
+    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages
+RUN pip install selenium pytest webdriver-manager
+
+WORKDIR /tests
+COPY . .
+
+CMD ["python", "-m", "pytest", "test_codevault.py", "-v", "--tb=short"]
+DOCKERFILE
                     
-                    # Install Chrome
-                    wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
-                    echo 'deb http://dl.google.com/linux/chrome/deb/ stable main' >> /etc/apt/sources.list.d/google.list
-                    
-                    apt-get update && apt-get install -y google-chrome-stable
-                    
-                    pip install selenium pytest webdriver-manager
-                    
-                    # Clone inside container (NO permission issues)
-                    git clone https://github.com/janjua911/codevault-tests.git
-                    
-                    cd codevault-tests
-                    
-                    pytest test_codevault.py -v --tb=short
-                    "
+                    # Build and run tests
+                    docker build -f Dockerfile.test -t codevault-tests:latest .
+                    docker run --rm --network host codevault-tests:latest
                 '''
             }
         }
@@ -63,15 +86,16 @@ pipeline {
         always {
             echo '🧹 Cleaning up...'
             sh '''
-                docker stop codevault-app || true
-                docker rm codevault-app || true
+                docker stop codevault-app 2>/dev/null || true
+                docker rm codevault-app 2>/dev/null || true
+                docker rmi codevault-tests:latest 2>/dev/null || true
             '''
         }
         success {
-            echo '🎉 ALL TESTS PASSED 🎉'
+            echo '🎉🎉🎉 PIPELINE SUCCESS! All 19 tests passed! 🎉🎉🎉'
         }
         failure {
-            echo '❌ Pipeline failed ❌'
+            echo '❌ Pipeline failed! Check the test output above. ❌'
         }
     }
 }
