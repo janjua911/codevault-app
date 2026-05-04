@@ -43,7 +43,7 @@ pipeline {
                         -v $PWD:/tests \
                         -w /tests \
                         joyzoursky/python-chromedriver:3.9-selenium \
-                        bash -c "pip install pytest && python -m pytest test_codevault.py -v --tb=short"
+                        bash -c "pip install pytest webdriver-manager selenium && python -m pytest test_codevault.py -v --tb=short"
                 '''
             }
         }
