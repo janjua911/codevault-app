@@ -16,8 +16,8 @@ pipeline {
 
         stage('Clean Workspace') {
             steps {
-                // deleteDir() fails on root-owned Docker files — use sudo instead
-                sh 'sudo rm -rf ${WORKSPACE}/* ${WORKSPACE}/.git 2>/dev/null || true'
+                // Only wipe test-suite (root-owned by Docker). Never touch .git
+                sh 'sudo rm -rf ${WORKSPACE}/test-suite 2>/dev/null || true'
                 echo 'Workspace cleaned.'
             }
         }
@@ -67,7 +67,6 @@ pipeline {
                                  --junitxml=results.xml \
                                  --html=report.html --self-contained-html"
 
-                    # Fix ownership so Jenkins can clean up next build
                     sudo chown -R jenkins:jenkins ${WORKSPACE}/test-suite || true
                 """
             }
@@ -88,7 +87,7 @@ pipeline {
             emailext(
                 to: "${env.PUSHER_EMAIL}",
                 subject: "✅ [CodeVault CI] Build #${BUILD_NUMBER} PASSED",
-                body: "<h2 style='color:green'>All 21 tests passed!</h2><p>Build: #${BUILD_NUMBER}<br>Pusher: ${env.PUSHER_EMAIL}<br>Duration: ${currentBuild.durationString}</p><p><a href='${BUILD_URL}'>View Build</a> | <a href='${BUILD_URL}testReport'>Test Report</a></p>",
+                body: "<h2 style='color:green'>All 21 tests passed!</h2><p>Build: #${BUILD_NUMBER}<br>Pusher: ${env.PUSHER_EMAIL}<br>Duration: ${currentBuild.durationString}</p><p><a href='${BUILD_URL}'>View Build</a></p>",
                 mimeType: 'text/html',
                 attachmentsPattern: 'test-suite/report.html'
             )
@@ -97,7 +96,7 @@ pipeline {
             emailext(
                 to: "${env.PUSHER_EMAIL}",
                 subject: "❌ [CodeVault CI] Build #${BUILD_NUMBER} FAILED",
-                body: "<h2 style='color:red'>Pipeline failed!</h2><p>Build: #${BUILD_NUMBER}<br>Pusher: ${env.PUSHER_EMAIL}</p><p><a href='${BUILD_URL}console'>View Console Output</a></p>",
+                body: "<h2 style='color:red'>Pipeline failed!</h2><p>Build: #${BUILD_NUMBER}<br>Pusher: ${env.PUSHER_EMAIL}</p><p><a href='${BUILD_URL}console'>View Console</a></p>",
                 mimeType: 'text/html'
             )
         }
