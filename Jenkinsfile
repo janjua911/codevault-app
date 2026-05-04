@@ -35,12 +35,12 @@ pipeline {
             steps {
                 echo '🧪 Running Selenium tests...'
                 sh '''
-                    # Use a temp directory with timestamp to avoid conflicts
-                    TEST_DIR="selenium-tests-$(date +%s)"
+                    # Force remove with sudo if needed
+                    sudo rm -rf selenium-tests 2>/dev/null || true
                     
-                    # Clone tests to new directory
-                    git clone https://github.com/janjua911/codevault-tests.git $TEST_DIR
-                    cd $TEST_DIR
+                    # Clone tests
+                    git clone https://github.com/janjua911/codevault-tests.git selenium-tests
+                    cd selenium-tests
                     
                     # Run tests
                     docker run --rm \
@@ -50,9 +50,9 @@ pipeline {
                         joyzoursky/python-chromedriver:3.9-selenium \
                         bash -c "pip install pytest webdriver-manager selenium && python -m pytest test_codevault.py -v --tb=short"
                     
-                    # Clean up after tests
+                    # Clean up
                     cd ..
-                    rm -rf $TEST_DIR
+                    sudo rm -rf selenium-tests
                 '''
             }
         }
