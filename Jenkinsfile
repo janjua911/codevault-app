@@ -77,7 +77,7 @@ DOCKERFILE
                     docker build -f Dockerfile.test -t codevault-tests:latest .
                     
                     # Run tests
-                    docker run --rm \
+                    docker run --rm -u $(id -u):$(id -g) \
                         --network host \
                         codevault-tests:latest
                 '''
