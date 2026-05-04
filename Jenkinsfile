@@ -14,14 +14,6 @@ pipeline {
 
     stages {
 
-        stage('Clean Workspace') {
-            steps {
-                // Only wipe test-suite (root-owned by Docker). Never touch .git
-                sh 'sudo rm -rf ${WORKSPACE}/test-suite 2>/dev/null || true'
-                echo 'Workspace cleaned.'
-            }
-        }
-
         stage('Checkout') {
             steps {
                 checkout scm
@@ -55,11 +47,14 @@ pipeline {
         stage('Run Selenium Tests') {
             steps {
                 sh """
+                    # Remove old test-suite if exists (root-owned from Docker)
+                    sudo rm -rf test-suite 2>/dev/null || true
+
                     git clone ${TEST_REPO} test-suite
 
                     docker run --rm \
                         --network host \
-                        -v ${WORKSPACE}/test-suite:/tests \
+                        -v \$(pwd)/test-suite:/tests \
                         -w /tests \
                         ${TEST_IMAGE} \
                         bash -c "pip install pytest pytest-html --quiet && \
@@ -67,7 +62,7 @@ pipeline {
                                  --junitxml=results.xml \
                                  --html=report.html --self-contained-html"
 
-                    sudo chown -R jenkins:jenkins ${WORKSPACE}/test-suite || true
+                    sudo chown -R jenkins:jenkins test-suite || true
                 """
             }
             post {
