@@ -16,6 +16,7 @@ pipeline {
                     docker build -t codevault:latest .
                 '''
             }
+            
         }
 
         
